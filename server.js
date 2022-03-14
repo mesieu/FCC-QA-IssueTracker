@@ -4,26 +4,20 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const expect = require('chai').expect;
 const cors = require('cors');
-const mongoose = require('mongoose');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api.js');
 const fccTestingRoutes = require('./routes/fcctesting.js');
 const runner = require('./test-runner');
 
-// Connect to mongoDB
-const mongoose = require('mongoose');
-const mongoURL = process.env['MONGO_URL'];
-mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true });
-
 let app = express();
 
 app.use('/public', express.static(process.cwd() + '/public'));
 
-app.use(cors({ origin: '*' })); //For FCC testing purposes only
+app.use(cors({origin: '*'})); //For FCC testing purposes only
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({extended: true}));
 
 //Sample front-end
 app.route('/:project/').get(function (req, res) {
