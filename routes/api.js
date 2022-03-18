@@ -34,6 +34,7 @@ module.exports = function (app) {
 
     .get((req, res, next) => {
       let projectName = req.params.project;
+
       Project.findOne({name: projectName}, (err, project) => {
         if (err) return next(err);
         res.json(project.issues);
@@ -45,15 +46,21 @@ module.exports = function (app) {
       findOrCreateProject(projectName, (err, project) => {
         if (err) return next(err);
         let newIssue = {
-          issue_title: req.body.issue_title,
-          issue_text: req.body.issue_text,
+          issue_title: req.body.issue_title.trim(),
+          issue_text: req.body.issue_text.trim(),
           created_on: new Date(),
           updated_on: new Date(),
-          created_by: req.body.created_by,
-          assigned_to: req.body.assigned_to,
+          created_by: req.body.created_by.trim(),
+          assigned_to: req.body.assigned_to.trim(),
           open: true,
-          status_text: req.body.status_text,
+          status_text: req.body.status_text.trim(),
         };
+        if (
+          newIssue.issue_title === '' ||
+          newIssue.issue_text === '' ||
+          newIssue.issue_created_by === ''
+        )
+          return res.json({error: 'required field(s) missing'});
         project.issues.push(newIssue);
         project.save((err, project) => {
           if (err) return next(err);
@@ -64,25 +71,43 @@ module.exports = function (app) {
 
     .put((req, res, next) => {
       const projectName = req.params.project;
-      const issueId = req.body._id;
-      Project.updateOne(
-        {'issues._id': ObjectId(issueId)},
-        {
-          $set: {
-            'issues.$.issue_title': req.body.issue_title,
-            'issues.$.issue_text': req.body.issue_text,
-            'issues.$.updated_on': new Date(),
-            'issues.$.created_by': req.body.created_by,
-            'issues.$.assigned_to': req.body.assigned_to,
-            'issues.$.open': req.body.open,
-            'issues.$.status_text': req.body.status_text,
-          },
-        },
-        (err, data) => {
-          if (err) return next(err);
-          res.json(data);
+      if (req.body._id === '') return res.json({error: 'missing _id'});
+      try {
+        ObjectId(req.body._id);
+      } catch (error) {
+        return res.json({error: 'invalid _id'});
+      }
+      const issueId = ObjectId(req.body._id);
+      let updatedIssue = {};
+      Object.keys(req.body).forEach((key) => {
+        if (key === '_id') return;
+        if (req.body[key] !== '') {
+          updatedIssue[key] = req.body[key];
         }
-      );
+      });
+      console.log(updatedIssue);
+      // Project.updateOne(
+      //   {'issues._id': issueId},
+      //   {
+      //     $set: {
+      //       'issues.$.issue_title': req.body.issue_title,
+      //       'issues.$.issue_text': req.body.issue_text,
+      //       'issues.$.updated_on': new Date(),
+      //       'issues.$.created_by': req.body.created_by,
+      //       'issues.$.assigned_to': req.body.assigned_to,
+      //       'issues.$.open': req.body.open,
+      //       'issues.$.status_text': req.body.status_text,
+      //     },
+      //   },
+      //   (err, data) => {
+      //     if (err) return res.json(err);
+      //     if (data.matchedCount === 1) {
+      //       if (data.modifiedCount === 0)
+      //         return res.json({error: 'could not update', _id: issueId});
+      //       return res.json({result: 'successfully updated', _id: issueId});
+      //     }
+      //   }
+      // );
     })
 
     .delete((req, res, next) => {
