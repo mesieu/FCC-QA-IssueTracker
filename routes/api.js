@@ -77,37 +77,52 @@ module.exports = function (app) {
       } catch (error) {
         return res.json({error: 'invalid _id'});
       }
-      const issueId = ObjectId(req.body._id);
-      let updatedIssue = {};
-      Object.keys(req.body).forEach((key) => {
-        if (key === '_id') return;
-        if (req.body[key] !== '') {
-          updatedIssue[key] = req.body[key];
+      // const issueId = ObjectId(req.body._id);
+      const issueId = req.body._id;
+
+      Project.findOne({name: projectName}, (err, project) => {
+        //   if (err) return next(err);
+        //   let issueToUpdate;
+        //   project.issues.forEach((issue) => {
+        //     if (ObjectId(issue._id).toString() === issueId) {
+        //       issueToUpdate = issue;
+        //     }
+        //   });
+        let issueToUpdate = project.issues.filter(
+          (issue) => ObjectId(issue._id).toString() === issueId
+        );
+        issueToUpdate = issueToUpdate[0];
+        let updatedIssue = issueToUpdate;
+
+        Object.keys(req.body).forEach((key) => {
+          if (key === '_id') return;
+          if (req.body[key] !== '') {
+            updatedIssue[key] = req.body[key];
+          } else {
+          }
+        });
+        updatedIssue['updated_on'] = new Date();
+        console.log(updatedIssue);
+        if (issueToUpdate !== updatedIssue) {
+          Project.updateOne(
+            {'issues._id': issueId},
+            {
+              $set: {
+                'issues.$': issueToUpdate,
+              },
+            },
+            (err, data) => {
+              if (err) return res.json(err);
+              if (data.matchedCount === 1) {
+                if (data.modifiedCount === 0)
+                  return res.json({error: 'could not update', _id: issueId});
+                return res.json({result: 'successfully updated', _id: issueId});
+              }
+              // res.json(data);
+            }
+          );
         }
       });
-      console.log(updatedIssue);
-      // Project.updateOne(
-      //   {'issues._id': issueId},
-      //   {
-      //     $set: {
-      //       'issues.$.issue_title': req.body.issue_title,
-      //       'issues.$.issue_text': req.body.issue_text,
-      //       'issues.$.updated_on': new Date(),
-      //       'issues.$.created_by': req.body.created_by,
-      //       'issues.$.assigned_to': req.body.assigned_to,
-      //       'issues.$.open': req.body.open,
-      //       'issues.$.status_text': req.body.status_text,
-      //     },
-      //   },
-      //   (err, data) => {
-      //     if (err) return res.json(err);
-      //     if (data.matchedCount === 1) {
-      //       if (data.modifiedCount === 0)
-      //         return res.json({error: 'could not update', _id: issueId});
-      //       return res.json({result: 'successfully updated', _id: issueId});
-      //     }
-      //   }
-      // );
     })
 
     .delete((req, res, next) => {
